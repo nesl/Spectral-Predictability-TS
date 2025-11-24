@@ -1,143 +1,125 @@
+# Spectral Predictability as a Fast Reliability Indicator for Time Series Forecasting Model Selection
 
-## About
+Oliver Wang, Pengrui Quan, Kang Yang, Mani Srivastava  
+AAAI AIforTS Workshop, 2026
 
-Mamba is a new state space model architecture showing promising performance on information-dense data such as language modeling, where previous subquadratic models fall short of Transformers.
-It is based on the line of progress on [structured state space models](https://github.com/state-spaces/s4),
-with an efficient hardware-aware design and implementation in the spirit of [FlashAttention](https://github.com/Dao-AILab/flash-attention).
-# Time Series Mamba
-In the `TimeLLM` directory are experiments that examine what happens if you replace the transformer LLM in TimeLLM with pretrained LLAMA3.1, Mamba, and Mamba2 LLMs from huggingface. 
-In the `mamba_ssm` directory are experiments that use what we learned from the `TimeLLM` codebase and try with backbone-only approaches. Local models are defined in the `model` and `module` directories.
+This repository contains all code used in the paper. The structure centers on two main components:  
+1. A modified TimeLLM pipeline for forecasting experiments and Omega-conditioned performance visualization  
+2. A GiftEval-based pipeline for large-scale analysis of model behavior versus spectral predictability
 
-Datasets were not uploaded to this remote repo but should be downloaded from [this Google Drive link provided by the Time-LLM github](https://drive.google.com/file/d/1NF7VEefXCmXuWNbnNe858WvQAkJ_7wuP/view) and installed in a directory titled `dataset` at the same level as the directory `data_provider` (this applies to both `TimeLLM` and `mamba_ssm`). 
+This dataset is released under the BSD 3-Clause License. See the LICENSE file for details.
 
-## Installation
+---
 
-- [Option] `pip install causal-conv1d>=1.2.0`: an efficient implementation of a simple causal Conv1d layer used inside the Mamba block.
-- `pip install mamba-ssm`: the core Mamba package.
+## Repository Overview
 
-Installation guide:
-'''
-conda create -n Mamba2 python=3.9
-pip install packaging
-pip install torch
-pip install .
-'''
+    .
+    ├── TimeLLM/                     Modified clone of the official TimeLLM repo
+    │   ├── datasets/                Standard time series datasets (user must supply)
+    │   ├── scripts/                 Experiment scripts (use testSpectralAll.sh)
+    │   ├── results/                 Numerical outputs from all runs
+    │   └── results_automate/        Automated postprocessing and plotting
+    │       └── graph_spectral.py
+    │
+    └── gift_eval/
+        ├── git_repo/                Clone of the GiftEval repo (user must supply)
+        ├── series/                  Arrow-formatted datasets (user must supply)
+        ├── merge_gift_results.py
+        ├── compute_metrics_fast.py
+        └── visualize_modeltype_effects.py
 
-## Runs
-Connect to a wandb project first with `wandb login`. 
+---
 
-To run `TimeLLM` scripts, navigate to that directory. Then call ./scripts/clean_combine.sh and provide the required arguments for layers, epochs, model type, etc. in the command line. This will repeat for different seeds.
+## 1. TimeLLM Pipeline
 
-To run `mamba_ssm` scripts, navigate to that directory. Then call ./scripts/dsweep.sh with the appropriate required arguments. This will run a set of experiments on different model dimensions in addition to the seeds.
+### Datasets
+Place the standard time series datasets from the Time Series Library into `TimeLLM/datasets/`.  
+The directory names must match what the TimeLLM scripts expect.
 
-# The following is from the original repo, not what we do: 
+### Running Experiments
 
-## Evaluations
+From within `TimeLLM/` run:
 
-To run zero-shot evaluations of models (corresponding to Table 3 of the paper),
-we use the
-[lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness)
-library.
+    bash scripts/testSpectralAll.sh
 
-1. Install `lm-evaluation-harness` by `pip install lm-eval==0.4.2`.
-2. Run evaluation with (more documentation at the [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness/tree/big-refactor) repo):
-``` sh
-lm_eval --model mamba_ssm --model_args pretrained=state-spaces/mamba-130m --tasks lambada_openai,hellaswag,piqa,arc_easy,arc_challenge,winogrande,openbookqa --device cuda --batch_size 256
-python evals/lm_harness_eval.py --model hf --model_args pretrained=EleutherAI/pythia-160m --tasks lambada_openai,hellaswag,piqa,arc_easy,arc_challenge,winogrande --device cuda --batch_size 64
-```
+Edit arguments inside the script as needed.
 
-To reproduce the results on the `mamba-2.8b-slimpj` model reported in the blogposts:
-``` sh
-lm_eval --model mamba_ssm --model_args pretrained=state-spaces/mamba-2.8b-slimpj --tasks boolq,piqa,hellaswag,winogrande,arc_easy,arc_challenge,openbookqa,race,truthfulqa_mc2 --device cuda --batch_size 256
-lm_eval --model mamba_ssm --model_args pretrained=state-spaces/mamba-2.8b-slimpj --tasks mmlu --num_fewshot 5 --device cuda --batch_size 256
-```
+### Generating Omega Figures
 
-To run evaluations on Mamba-2 models, simply replace the model names:
-``` sh
-lm_eval --model mamba_ssm --model_args pretrained=state-spaces/mamba2-2.7b --tasks lambada_openai,hellaswag,piqa,arc_easy,arc_challenge,winogrande,openbookqa --device cuda --batch_size 256
-lm_eval --model mamba_ssm --model_args pretrained=state-spaces/transformerpp-2.7b --tasks lambada_openai,hellaswag,piqa,arc_easy,arc_challenge,winogrande,openbookqa --device cuda --batch_size 256
-lm_eval --model mamba_ssm --model_args pretrained=state-spaces/mamba2attn-2.7b --tasks lambada_openai,hellaswag,piqa,arc_easy,arc_challenge,winogrande,openbookqa --device cuda --batch_size 256
-```
+After all runs complete:
 
-Note that the result of each task might differ from reported values by 0.1-0.3 due to noise in the evaluation process.
+    cd TimeLLM/results_automate
+    python graph_spectral.py
 
-## Inference
+Figures and processed summaries appear under:
 
-The script [benchmarks/benchmark_generation_mamba_simple.py](benchmarks/benchmark_generation_mamba_simple.py)
-1. autoloads a model from the Hugging Face Hub,
-2. generates completions of a user-specified prompt,
-3. benchmarks the inference speed of this generation.
+    TimeLLM/results_automate/out/Omega/base/
+    TimeLLM/results_automate/out/Omega/mse/
 
-Other configurable options include the top-p (nucleus sampling) probability, and the softmax temperature.
+---
 
-### Examples
+## 2. GiftEval Pipeline
 
-To test generation latency (e.g. batch size = 1) with different sampling strategies:
+### Setup
 
-``` sh
-python benchmarks/benchmark_generation_mamba_simple.py --model-name "state-spaces/mamba-2.8b" --prompt "My cat wrote all this CUDA code for a new language model and" --topp 0.9 --temperature 0.7 --repetition-penalty 1.2
-python benchmarks/benchmark_generation_mamba_simple.py --model-name "EleutherAI/pythia-2.8b" --prompt "My cat wrote all this CUDA code for a new language model and" --topp 0.9 --temperature 0.7 --repetition-penalty 1.2
-python benchmarks/benchmark_generation_mamba_simple.py --model-name "state-spaces/mamba-2.8b" --prompt "My cat wrote all this CUDA code for a new language model and" --minp 0.05 --topk 0 --temperature 0.7 --repetition-penalty 1.2
-```
+Inside `gift_eval/`:
 
-To test generation throughput with random prompts (e.g. large batch size):
-``` sh
-python benchmarks/benchmark_generation_mamba_simple.py --model-name "state-spaces/mamba-2.8b" --batch 64
-python benchmarks/benchmark_generation_mamba_simple.py --model-name "EleutherAI/pythia-2.8b" --batch 64
-```
+1. Clone the GiftEval repository into `git_repo/`
+2. Populate `series/` with Arrow datasets
 
-With Mamba-2, you just need to change the model name:
-``` sh
-python benchmarks/benchmark_generation_mamba_simple.py --model-name "state-spaces/mamba2-2.7b" --prompt "My cat wrote all this CUDA code for a new language model and" --topp 0.9 --temperature 0.7 --repetition-penalty 1.2
-```
+### Merge Results
 
+    python merge_gift_results.py
 
-## Troubleshooting
+Produces:
 
-### Precision
-Our models were trained using PyTorch [AMP](https://pytorch.org/docs/stable/amp.html) for mixed precision. AMP keeps model parameters in float32 and casts to half precision when necessary.
-On the other hand, other frameworks like DeepSpeed store parameters in float16 and upcasts when necessary (e.g. for optimizer accumulation).
+    merged_gift_results.csv
 
-We've observed that higher precision for the main model parameters may be necessary, because SSMs are sensitive to their recurrent dynamics. If you are experiencing instabilities,
-as a first step please try a framework storing parameters in fp32 (such as AMP).
+### Compute Predictability Metrics
 
-### Initialization
-Some parts of the model have initializations inherited from prior work on S4 models.
-For [example](https://github.com/state-spaces/mamba/blob/f0affcf69f06d1d06cef018ff640bf080a11c421/mamba_ssm/modules/mamba_simple.py#L102), the $\Delta$ parameter has a targeted range by initializing the bias of its linear projection.
-However, some frameworks may have post-initialization hooks (e.g. setting all bias terms in `nn.Linear` modules to zero).
-If this is the case, you may have to add custom logic (e.g. this [line](https://github.com/state-spaces/mamba/blob/f0affcf69f06d1d06cef018ff640bf080a11c421/mamba_ssm/modules/mamba_simple.py#L104) turns off re-initializing in our trainer, but would be a no-op in any other framework)
-that is specific to the training framework.
+    python compute_metrics_fast.py
 
-## Additional Prerequisites for AMD cards
+Produces:
 
-### Patching ROCm
+    metrics_summary_wide.csv
 
-If you are on ROCm 6.0, run the following steps to avoid errors during compilation. This is not required for ROCm 6.1 onwards.
+Ensure both CSVs have matching dataset and model identifiers before visualization.
 
-1. Locate your ROCm installation directory. This is typically found at `/opt/rocm/`, but may vary depending on your installation.
+### Visualize Model-Type Effects
 
-2. Apply the Patch. Run with `sudo` in case you encounter permission issues.
-   ```bash
-    patch /opt/rocm/include/hip/amd_detail/amd_hip_bf16.h < rocm_patch/rocm6_0.patch 
-   ```
+    python visualize_modeltype_effects.py
 
+Outputs correlation tables and figures under:
+
+    gift_eval/corr_out/
+    gift_eval/corr_out/figures/
+
+---
+
+## 3. Reproducing All Figures
+
+1. Run the full TimeLLM experiment pipeline  
+2. Run the full GiftEval processing pipeline  
+3. Collect figures from:
+
+    TimeLLM/results_automate/out/Omega/
+    gift_eval/corr_out/figures/
+
+These reproduce the plots used in the paper.
+
+---
 
 ## Citation
 
-If you use this codebase, or otherwise find our work valuable, please cite Mamba:
-```
-@article{mamba,
-  title={Mamba: Linear-Time Sequence Modeling with Selective State Spaces},
-  author={Gu, Albert and Dao, Tri},
-  journal={arXiv preprint arXiv:2312.00752},
-  year={2023}
-}
+    @inproceedings{wang2026spectralpredictability,
+      title={Spectral Predictability as a Fast Reliability Indicator for Time Series Forecasting Model Selection},
+      author={Wang, Oliver and Quan, Pengrui and Yang, Kang and Srivastava, Mani},
+      booktitle={AAAI Workshop on AI for Time Series (AIforTS)},
+      year={2026}
+    }
 
-@inproceedings{mamba2,
-  title={Transformers are {SSM}s: Generalized Models and Efficient Algorithms Through Structured State Space Duality},
-  author={Dao, Tri and Gu, Albert},
-  booktitle={International Conference on Machine Learning (ICML)},
-  year={2024}
-}
+---
 
-```
+## License
+
+This dataset is released under the BSD 3-Clause License. See the LICENSE file for details.
