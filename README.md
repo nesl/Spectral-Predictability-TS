@@ -33,7 +33,7 @@ This dataset is released under the BSD 3-Clause License. See the LICENSE file fo
 ## 1. TimeLLM Pipeline
 
 ### Datasets
-Place the standard time series datasets from the Time Series Library into `TimeLLM/datasets/`.  
+Download and place the standard time series datasets from the Time Series Library into `TimeLLM/datasets/`.  
 The directory names must match what the TimeLLM scripts expect.
 
 ### Running Experiments
@@ -46,7 +46,7 @@ Edit arguments inside the script as needed.
 
 ### Generating Omega Figures
 
-After all runs complete:
+After all runs complete in the `results/` directory:
 
     cd TimeLLM/results_automate
     python graph_spectral.py
@@ -65,7 +65,7 @@ Figures and processed summaries appear under:
 Inside `gift_eval/`:
 
 1. Clone the GiftEval repository into `git_repo/`
-2. Populate `series/` with Arrow datasets
+2. Populate a `series/` repository with Arrow datasets from the GiftEval repo.
 
 ### Merge Results
 
