@@ -1,7 +1,7 @@
 # Spectral Predictability as a Fast Reliability Indicator for Time Series Forecasting Model Selection
 
 Oliver Wang, Pengrui Quan, Kang Yang, Mani Srivastava  
-AAAI AIforTS Workshop, 2026
+AAAI AI4TS Workshop, 2026
 
 This repository contains all code used in the paper. The structure centers on two main components:  
 1. A modified TimeLLM pipeline for forecasting experiments and Omega-conditioned performance visualization  
