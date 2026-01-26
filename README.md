@@ -3,7 +3,7 @@
 Oliver Wang, Pengrui Quan, Kang Yang, Mani Srivastava  
 AAAI AI4TS Workshop, 2026
 
-This repository contains all code used in the paper. The structure centers on two main components:  
+This repository contains all code used in the paper [available here](https://arxiv.org/abs/2511.08884). The structure centers on two main components:  
 1. A modified TimeLLM pipeline for forecasting experiments and Omega-conditioned performance visualization  
 2. A GiftEval-based pipeline for large-scale analysis of model behavior versus spectral predictability
 
